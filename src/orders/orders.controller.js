@@ -1,3 +1,4 @@
+const req = require("express/lib/request");
 const path = require("path");
 const { isArray } = require("util");
 
@@ -102,6 +103,40 @@ function read(req, res) {
     res.json({ data: res.locals.order });
 }
 
+// Status validation
+function validateStatus(req, res, next) {
+    const { data: { status } = {} } = req.body;
+    if (!status || status.length === 0 || status === "invalid") {
+        next({
+            status: 400,
+            message: "Order must have a status of pending, preparing, out-for-delivery, delivered"
+        });
+    } else if (status === "delivered") {
+        next({
+            status: 400,
+            message: "A delivered order cannot be changed"
+        });
+    } else {
+        next();
+    };
+}
+
+// Update handler
+function update(req, res, next) {
+    const order = res.locals.order;
+    const { data: { id, deliverTo, mobileNumber, status, dishes } = {} } = req.body;
+    if (id && id !== order.id) {
+        return next({ status: 400, message: `Order id does not match route id. Order: ${id}, Route: ${order.id}`});
+    }
+    order.deliverTo = deliverTo;
+    order.mobileNumber = mobileNumber;
+    order.status = status;
+    order.dishes = dishes;
+
+    res.json({ data: order });
+}
+
+
 module.exports = {
     create: [
         bodyDataHas("deliverTo"),
@@ -115,4 +150,16 @@ module.exports = {
     ],
     list,
     read: [orderExists, read],
+    update: [
+        orderExists, 
+        bodyDataHas("deliverTo"),
+        bodyDataHas("mobileNumber"),
+        bodyDataHas("dishes"),
+        propertyIsNotEmpty("deliverTo"),
+        propertyIsNotEmpty("mobileNumber"),
+        dishIsNotEmpty("dishes"),
+        dishHasQuantity("dishes"),
+        validateStatus,
+        update
+    ],
 }
