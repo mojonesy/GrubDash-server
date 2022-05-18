@@ -1,4 +1,5 @@
 const path = require("path");
+const { isArray } = require("util");
 
 // Use the existing order data
 const orders = require(path.resolve("src/data/orders-data"));
@@ -11,7 +12,91 @@ function list(req, res) {
     res.json({ data: orders });
 }
 
+// Parameter validation
+function bodyDataHas(propertyName) {
+    return function (req, res, next) {
+        const { data = {} } = req.body;
+        if (data[propertyName]) {
+            return next();
+        }
+        next({
+            status: 400,
+            message: `Order must include a ${propertyName}`
+        });
+    };
+}
+
+function propertyIsNotEmpty(propertyName) {
+    return function (req, res, next) {
+        if (propertyName.length === 0) {
+            next({
+                status: 400, 
+                message: `Order must include a ${propertyName}` 
+            });
+        }
+        next();
+    }
+}
+
+function dishIsNotEmpty(dishes) {
+    return function (req, res, next) {
+        const { data: { dishes } = {} } = req.body;
+        if (!Array.isArray(dishes) || dishes.length === 0) {
+            next({
+                status: 400,
+                message: "Order must include at least one dish"
+            });
+        }
+        next();
+    }
+}
+
+function dishHasQuantity(dishes) {
+    return function (req, res, next) {
+        const { data: { dishes } = {} } = req.body;
+        dishes.forEach((dish, index) => {
+            if (!dish.quantity || dish.quantity <= 0 || !Number.isInteger(dish.quantity)) {
+                next({
+                    status: 400,
+                    message: `Dish ${index} must have a quantity that is an integer greater than 0`
+                });
+            }
+        });
+        
+        next();
+    }
+}
+
+// Create handler
+function create(req, res) {
+    const { 
+        data: { deliverTo, mobileNumber, status, 
+            dishes: [{ id, name, description, image_url, price, quantity }]
+            } = {} 
+    } = req.body;
+
+    const newOrder = {
+        id: nextId(),
+        deliverTo,
+        mobileNumber,
+        status,
+        dishes: [{ id, name, description, image_url, price, quantity }]
+    };
+    orders.push(newOrder);
+    res.status(201).json({ data: newOrder });
+}
+
 
 module.exports = {
+    create: [
+        bodyDataHas("deliverTo"),
+        bodyDataHas("mobileNumber"),
+        bodyDataHas("dishes"),
+        propertyIsNotEmpty("deliverTo"),
+        propertyIsNotEmpty("mobileNumber"),
+        dishIsNotEmpty("dishes"),
+        dishHasQuantity("dishes"),
+        create
+    ],
     list,
 }
