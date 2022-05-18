@@ -62,7 +62,7 @@ function dishHasQuantity(dishes) {
                 });
             }
         });
-        
+
         next();
     }
 }
@@ -86,6 +86,21 @@ function create(req, res) {
     res.status(201).json({ data: newOrder });
 }
 
+// Order Exists?
+function orderExists(req, res, next) {
+    const { orderId } = req.params;
+    const foundOrder = orders.find(order => order.id === orderId);
+    if (foundOrder) {
+        res.locals.order = foundOrder;
+        next();
+    }
+    next({ status: 404, message: `Order does not exist: ${orderId}.`});
+}
+
+// Read handler
+function read(req, res) {
+    res.json({ data: res.locals.order });
+}
 
 module.exports = {
     create: [
@@ -99,4 +114,5 @@ module.exports = {
         create
     ],
     list,
+    read: [orderExists, read],
 }
