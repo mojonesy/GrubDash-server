@@ -136,6 +136,18 @@ function update(req, res, next) {
     res.json({ data: order });
 }
 
+// Delete handler
+function destroy(req, res, next) {
+    const order = res.locals.order;
+    const { orderId } = req.params;
+    if (order.status !== "pending") {
+        next({ status: 400, message: "An order cannot be deleted unless it is pending"});
+    }
+    const index = orders.findIndex(order => order.id === orderId);
+    const deletedOrders = orders.splice(index, 1);
+    res.sendStatus(204);
+}
+
 
 module.exports = {
     create: [
@@ -162,4 +174,5 @@ module.exports = {
         validateStatus,
         update
     ],
+    delete: [orderExists, destroy]
 }
