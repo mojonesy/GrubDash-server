@@ -81,7 +81,7 @@ function update(req, res, next) {
     const dish = res.locals.dish;
     const { data: { id, name, description, price, image_url } = {} } = req.body;
     if (id && id !== dish.id) {
-        return next({ status: 404, message: `Dish id does not match route id. Dish: ${id}, Route: ${dish.id}`});
+        return next({ status: 400, message: `Dish id does not match route id. Dish: ${id}, Route: ${dish.id}`});
     }
     dish.name = name;
     dish.description = description;
