@@ -27,7 +27,6 @@ function bodyDataHas(propertyName){
 
 function propertyIsNotEmpty(propertyName) {
     return function (req, res, next) {
-        const { data = {} } = req.body;
         if (propertyName.length === 0) {
             next({
                 status: 400, 
